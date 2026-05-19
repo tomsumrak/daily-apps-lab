@@ -6,7 +6,7 @@ services:
     buildCommand: npm ci && npm run build
     preDeployCommand: npm run prisma:deploy
     startCommand: npm start
-    healthCheckPath: /health
+    healthCheckPath: /api/health
     envVars:
       - key: DATABASE_URL
         fromDatabase:
