@@ -24,6 +24,12 @@ export const dailyApps: DailyApp[] = [
     slug: "tiny-crm",
     name: "Tiny CRM",
     description: "Keep a small list of people, follow-ups, and relationship notes."
+  },
+  {
+    slug: "seo-opportunity",
+    name: "SEO Opportunity Dashboard",
+    description:
+      "Turn DataForSEO pulls into a visual content opportunity dashboard, roadmap, and competitor research workspace."
   }
 ];
 
