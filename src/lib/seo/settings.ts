@@ -7,6 +7,22 @@ import type {
 
 const domainPattern = /^[a-z0-9][a-z0-9.-]*\.[a-z]{2,}$/i;
 
+const legacyPlaceholderCompetitors = new Set([
+  "turbotenant.com|Closest functional comp|true",
+  "avail.co|Mid-market overlap|true",
+  "hemlane.com||true",
+  "innago.com||true",
+  "doorloop.com||false"
+]);
+
+const legacyPlaceholderSeeds = new Set([
+  "tenant screening|Highest-intent product term|true",
+  "rent collection software||true",
+  "lease agreement template|Top of funnel|true",
+  "property management software|Broad but competitive|true",
+  "online rental application||false"
+]);
+
 const activeCompetitorSchema = z.object({
   domain: z
     .string()
@@ -89,12 +105,24 @@ export const seoSettingsSchema = z
         ...row,
         domain: stripDomainUrl(row.domain)
       }))
+      .filter(
+        (row) =>
+          !legacyPlaceholderCompetitors.has(
+            `${row.domain}|${row.notes}|${row.active}`
+          )
+      )
       .filter((row) => row.domain || row.notes),
     seedKeywords: settings.seedKeywords
       .map((row) => ({
         ...row,
         keyword: row.keyword.trim()
       }))
+      .filter(
+        (row) =>
+          !legacyPlaceholderSeeds.has(
+            `${row.keyword}|${row.notes}|${row.active}`
+          )
+      )
       .filter((row) => row.keyword || row.notes)
   }));
 
@@ -125,60 +153,8 @@ export const defaultSeoSettings: SeoSettings = {
   },
   highThreshold: 75,
   mediumThreshold: 50,
-  manualCompetitors: [
-    {
-      domain: "turbotenant.com",
-      notes: "Closest functional comp",
-      active: true
-    },
-    {
-      domain: "avail.co",
-      notes: "Mid-market overlap",
-      active: true
-    },
-    {
-      domain: "hemlane.com",
-      notes: "",
-      active: true
-    },
-    {
-      domain: "innago.com",
-      notes: "",
-      active: true
-    },
-    {
-      domain: "doorloop.com",
-      notes: "",
-      active: false
-    }
-  ],
-  seedKeywords: [
-    {
-      keyword: "tenant screening",
-      notes: "Highest-intent product term",
-      active: true
-    },
-    {
-      keyword: "rent collection software",
-      notes: "",
-      active: true
-    },
-    {
-      keyword: "lease agreement template",
-      notes: "Top of funnel",
-      active: true
-    },
-    {
-      keyword: "property management software",
-      notes: "Broad but competitive",
-      active: true
-    },
-    {
-      keyword: "online rental application",
-      notes: "",
-      active: false
-    }
-  ]
+  manualCompetitors: [],
+  seedKeywords: []
 };
 
 export function normalizeSeoSettings(input: unknown): SeoSettings {
