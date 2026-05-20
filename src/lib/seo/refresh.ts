@@ -101,7 +101,8 @@ export async function runSeoRefreshStep(
       const competitors = normalizeCompetitors(
         items,
         settings.manualCompetitors,
-        pulledAt
+        pulledAt,
+        settings.targetDomain
       ).slice(0, settings.maxCompetitors);
 
       await upsertSeoSingleton(userId, "competitors", asInputJson(competitors));

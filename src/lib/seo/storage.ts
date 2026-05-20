@@ -9,7 +9,11 @@ import {
   type DataForSeoCredentials,
   type EncryptedCredentialBlob
 } from "@/lib/seo/credentials";
-import { defaultSeoSettings, normalizeSeoSettings } from "@/lib/seo/settings";
+import {
+  defaultSeoSettings,
+  normalizeSeoSettings,
+  stripDomainUrl
+} from "@/lib/seo/settings";
 import {
   SEO_APP_SLUG,
   type SeoCluster,
@@ -47,6 +51,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function asArray<T>(value: unknown): T[] {
   return Array.isArray(value) ? (value as T[]) : [];
+}
+
+function matchesDomain(value: string, targetDomain: string) {
+  return Boolean(targetDomain) && stripDomainUrl(value) === targetDomain;
 }
 
 function asRefreshStatus(value: unknown): SeoRefreshStatus {
@@ -199,18 +207,32 @@ export async function getSeoDashboardData(
     getSeoSingleton<unknown>(userId, "pageKeywords")
   ]);
 
+  const targetDomain = stripDomainUrl(settings.targetDomain);
+  const competitorRows = asArray<SeoCompetitor>(competitors).filter(
+    (row) => !matchesDomain(row.domain, targetDomain)
+  );
+  const competitorKeywordRows = asArray<SeoKeywordRow>(
+    competitorKeywords
+  ).filter((row) => !matchesDomain(row.competitor, targetDomain));
+  const competitorPageRows = asArray<SeoCompetitorPage>(
+    competitorPages
+  ).filter((row) => !matchesDomain(row.competitorDomain, targetDomain));
+  const pageKeywordRows = asArray<SeoPageKeyword>(pageKeywords).filter(
+    (row) => !matchesDomain(row.competitor, targetDomain)
+  );
+
   return {
     settings,
     credentials,
     refresh: asRefreshStatus(refresh),
-    competitors: asArray<SeoCompetitor>(competitors),
-    competitorKeywords: asArray<SeoKeywordRow>(competitorKeywords),
+    competitors: competitorRows,
+    competitorKeywords: competitorKeywordRows,
     seedIdeas: asArray<SeoKeywordRow>(seedIdeas),
     opportunities: asArray<SeoOpportunity>(opportunities),
     clusters: asArray<SeoCluster>(clusters),
     roadmap: asArray<SeoRoadmapItem>(roadmap),
-    competitorPages: asArray<SeoCompetitorPage>(competitorPages),
-    pageKeywords: asArray<SeoPageKeyword>(pageKeywords)
+    competitorPages: competitorPageRows,
+    pageKeywords: pageKeywordRows
   };
 }
 

@@ -58,9 +58,17 @@ function assertOkPayload(payload: DataForSeoResponse) {
   }
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 function resultItems(payload: DataForSeoResponse) {
   assertOkPayload(payload);
-  return (payload.tasks ?? []).flatMap((task) => task.result ?? []);
+  return (payload.tasks ?? [])
+    .flatMap((task) => task.result ?? [])
+    .flatMap((result) =>
+      isRecord(result) && Array.isArray(result.items) ? result.items : result
+    );
 }
 
 export class DataForSeoClient {

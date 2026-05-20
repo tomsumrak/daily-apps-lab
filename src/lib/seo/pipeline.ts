@@ -237,16 +237,18 @@ function trendFromItem(item: unknown, kind: "monthly" | "yearly") {
 export function normalizeCompetitors(
   items: unknown[],
   manualCompetitors: SeoManualCompetitor[],
-  pulledAt: string
+  pulledAt: string,
+  targetDomain = ""
 ): SeoCompetitor[] {
   const byDomain = new Map<string, SeoCompetitor>();
+  const normalizedTargetDomain = normalizeDomain(targetDomain);
 
   for (const item of items) {
     const domain = normalizeDomain(
       asString(firstPath(item, ["domain", "target", "url", "page_address"]))
     );
 
-    if (!domain) {
+    if (!domain || domain === normalizedTargetDomain) {
       continue;
     }
 
@@ -296,6 +298,11 @@ export function normalizeCompetitors(
 
   for (const manual of manualCompetitors.filter((item) => item.active && item.domain)) {
     const domain = normalizeDomain(manual.domain);
+
+    if (domain === normalizedTargetDomain) {
+      continue;
+    }
+
     const existing = byDomain.get(domain);
 
     byDomain.set(domain, {
