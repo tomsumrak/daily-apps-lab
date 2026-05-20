@@ -3,8 +3,10 @@
 import type { Prisma } from "@prisma/client";
 import { DataForSeoClient } from "@/lib/seo/dataforseo";
 import {
+  DataForSeoCredentialError,
   encryptCredentials,
   maskLogin,
+  normalizeDataForSeoCredentials,
   type DataForSeoCredentials
 } from "@/lib/seo/credentials";
 import { runSeoRefreshStep } from "@/lib/seo/refresh";
@@ -61,25 +63,30 @@ export async function saveSeoSetupAction(
   const credentials = input.credentials;
 
   if (isCredentialPair(credentials)) {
-    const login = credentials?.login?.trim() ?? "";
-    const password = credentials?.password ?? "";
+    let normalizedCredentials: DataForSeoCredentials;
 
-    if (!login || !password) {
+    try {
+      normalizedCredentials = normalizeDataForSeoCredentials(credentials ?? {});
+    } catch (error) {
+      const message =
+        error instanceof DataForSeoCredentialError
+          ? error.message
+          : "Enter both DataForSEO API login and raw API password.";
       return {
         status: "error",
-        message: "Enter both DataForSEO API login and API password.",
+        message,
         fieldErrors: {
-          credentials: ["Enter both DataForSEO API login and API password."]
+          credentials: [message]
         }
       };
     }
 
     try {
-      const client = new DataForSeoClient({ login, password });
+      const client = new DataForSeoClient(normalizedCredentials);
       await client.validateCredentials();
       await saveSeoCredentialsRecord(user.id, {
-        encrypted: encryptCredentials({ login, password }),
-        loginHint: maskLogin(login),
+        encrypted: encryptCredentials(normalizedCredentials),
+        loginHint: maskLogin(normalizedCredentials.login),
         validatedAt: new Date().toISOString()
       });
     } catch (error) {

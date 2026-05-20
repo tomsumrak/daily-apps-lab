@@ -1691,11 +1691,11 @@ function SetupModal({
               desc="Credentials are validated with DataForSEO and then stored encrypted for this signed-in user."
             >
               <FieldGrid>
-                <Field label="API login" hint={data.credentials.loginHint ? `Saved as ${data.credentials.loginHint}` : "DataForSEO API login."}>
-                  <input className="seo-input" value={login} onChange={(event) => setLogin(event.target.value)} autoComplete="username" />
+                <Field label="API login" hint={data.credentials.loginHint ? `Saved as ${data.credentials.loginHint}` : "From DataForSEO API Access."}>
+                  <input className="seo-input" value={login} onChange={(event) => setLogin(event.target.value)} autoComplete="username" placeholder="api-login@example.com" />
                 </Field>
-                <Field label="API password" hint="Leave blank to keep the saved API password.">
-                  <input className="seo-input" type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" />
+                <Field label="API password" hint="Use the raw API password, not your account password. Basic/Base64 tokens are decoded before saving.">
+                  <input className="seo-input" type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" placeholder={data.credentials.configured ? "Leave blank to keep saved password" : "Raw API password"} />
                 </Field>
               </FieldGrid>
               <div className="seo-credential-status">

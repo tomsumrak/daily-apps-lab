@@ -15,6 +15,13 @@ export type EncryptedCredentialBlob = {
 
 const SECRET_ENV = "DATAFORSEO_CREDENTIAL_ENCRYPTION_KEY";
 
+export class DataForSeoCredentialError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "DataForSeoCredentialError";
+  }
+}
+
 function getEncryptionKey() {
   const secret = process.env[SECRET_ENV];
 
@@ -76,9 +83,101 @@ export function decryptCredentials(
     throw new Error("Credential payload is invalid.");
   }
 
+  return normalizeDataForSeoCredentials(parsed);
+}
+
+function extractBasicToken(value: string) {
+  const trimmed = value.trim();
+  const authorizationMatch = trimmed.match(/^Authorization:\s*Basic\s+(.+)$/i);
+
+  if (authorizationMatch?.[1]) {
+    return { token: authorizationMatch[1].trim(), explicit: true };
+  }
+
+  const basicMatch = trimmed.match(/^Basic\s+(.+)$/i);
+
+  if (basicMatch?.[1]) {
+    return { token: basicMatch[1].trim(), explicit: true };
+  }
+
+  return { token: trimmed, explicit: false };
+}
+
+function decodeBasicCredentialToken(value: string) {
+  const { token, explicit } = extractBasicToken(value);
+
+  if (!token || !/^[A-Za-z0-9+/_=-]+$/.test(token)) {
+    return { decoded: null, explicit };
+  }
+
+  try {
+    const decodedText = Buffer.from(
+      token.replace(/-/g, "+").replace(/_/g, "/"),
+      "base64"
+    ).toString("utf8");
+    const separatorIndex = decodedText.indexOf(":");
+
+    if (separatorIndex <= 0) {
+      return { decoded: null, explicit };
+    }
+
+    const login = decodedText.slice(0, separatorIndex).trim();
+    const password = decodedText.slice(separatorIndex + 1).trim();
+
+    if (!login || !password) {
+      return { decoded: null, explicit };
+    }
+
+    return {
+      decoded: {
+        login,
+        password
+      } satisfies DataForSeoCredentials,
+      explicit
+    };
+  } catch {
+    return { decoded: null, explicit };
+  }
+}
+
+function isPlausibleApiLogin(value: string) {
+  return /^[^\s:]+@[^\s:]+\.[^\s:]+$/.test(value) || /^[a-z0-9._-]+$/i.test(value);
+}
+
+export function normalizeDataForSeoCredentials(
+  credentials: Partial<DataForSeoCredentials>
+): DataForSeoCredentials {
+  let login = credentials.login?.trim() ?? "";
+  let password = credentials.password?.trim() ?? "";
+
+  const { decoded, explicit } = decodeBasicCredentialToken(password);
+
+  if (decoded) {
+    if (login && decoded.login.toLowerCase() !== login.toLowerCase()) {
+      if (explicit) {
+        throw new DataForSeoCredentialError(
+          "The pasted DataForSEO authorization token belongs to a different API login."
+        );
+      }
+    } else if (explicit || isPlausibleApiLogin(decoded.login)) {
+      login = decoded.login;
+      password = decoded.password;
+    }
+  } else if (explicit) {
+    throw new DataForSeoCredentialError(
+      "Paste the raw DataForSEO API password, or a valid Basic authorization token."
+    );
+  }
+
+  if (!login || !password) {
+    throw new DataForSeoCredentialError(
+      "Enter both DataForSEO API login and raw API password."
+    );
+  }
+
   return {
-    login: parsed.login,
-    password: parsed.password
+    login,
+    password
   };
 }
 

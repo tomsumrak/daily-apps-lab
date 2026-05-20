@@ -29,17 +29,30 @@ function authHeader(credentials: DataForSeoCredentials) {
   ).toString("base64")}`;
 }
 
+function withCredentialHint(message: string) {
+  if (/not authorized|unauthorized|login details|api-access/i.test(message)) {
+    return `${message} Use the DataForSEO API login and raw API password from API Access, not the account password or a pre-encoded Authorization value.`;
+  }
+
+  return message;
+}
+
 function assertOkPayload(payload: DataForSeoResponse) {
   if (payload.status_code && payload.status_code >= 40000) {
     throw new DataForSeoError(
-      payload.status_message || `DataForSEO returned ${payload.status_code}.`
+      withCredentialHint(
+        payload.status_message || `DataForSEO returned ${payload.status_code}.`
+      )
     );
   }
 
   for (const task of payload.tasks ?? []) {
     if (task.status_code && task.status_code >= 40000) {
       throw new DataForSeoError(
-        task.status_message || `DataForSEO task returned ${task.status_code}.`
+        withCredentialHint(
+          task.status_message ||
+            `DataForSEO task returned ${task.status_code}.`
+        )
       );
     }
   }
@@ -196,7 +209,7 @@ export class DataForSeoClient {
         typeof payload.status_message === "string"
           ? payload.status_message
           : `DataForSEO request failed with HTTP ${response.status}.`;
-      throw new DataForSeoError(message);
+      throw new DataForSeoError(withCredentialHint(message));
     }
 
     return payload as T;
