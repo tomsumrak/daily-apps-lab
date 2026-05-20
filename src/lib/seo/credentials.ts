@@ -14,6 +14,7 @@ export type EncryptedCredentialBlob = {
 };
 
 const SECRET_ENV = "DATAFORSEO_CREDENTIAL_ENCRYPTION_KEY";
+const AUTH_SECRET_ENV = "AUTH_SECRET";
 
 export class DataForSeoCredentialError extends Error {
   constructor(message: string) {
@@ -23,15 +24,28 @@ export class DataForSeoCredentialError extends Error {
 }
 
 function getEncryptionKey() {
-  const secret = process.env[SECRET_ENV];
+  const secret = process.env[SECRET_ENV]?.trim();
 
-  if (!secret || secret.length < 32) {
-    throw new Error(
-      `${SECRET_ENV} must be configured with at least 32 characters.`
-    );
+  if (secret && secret.length >= 32) {
+    return crypto.createHash("sha256").update(secret).digest();
   }
 
-  return crypto.createHash("sha256").update(secret).digest();
+  const authSecret = process.env[AUTH_SECRET_ENV]?.trim();
+
+  if (
+    process.env.NODE_ENV !== "production" &&
+    authSecret &&
+    authSecret.length >= 32
+  ) {
+    return crypto
+      .createHash("sha256")
+      .update(`${SECRET_ENV}:development:${authSecret}`)
+      .digest();
+  }
+
+  throw new Error(
+    `${SECRET_ENV} is a server-side app encryption key, not your DataForSEO API password. Configure it with a separate random value of at least 32 characters.`
+  );
 }
 
 export function encryptCredentials(
