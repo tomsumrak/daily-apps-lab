@@ -77,3 +77,21 @@ npm run build
 Mini-apps should be added inside this same Next.js application under
 `/apps/[slug]`. App-specific data should be stored in `AppRecord` with `userId`,
 `appSlug`, `recordType`, and JSON `data`.
+
+## App Records
+
+Use the helpers in `src/lib/app-records.ts` for mini-app data access. They
+require both `userId` and `appSlug` for reads and writes, which keeps app data
+scoped to the signed-in user and the current mini-app.
+
+```ts
+await createAppRecord({
+  userId: user.id,
+  appSlug: "quick-notes",
+  recordType: "note",
+  data: { body: "First note" }
+});
+```
+
+Do not query `AppRecord` directly by `id` alone. Use `getAppRecord`,
+`updateAppRecord`, or `deleteAppRecord` so the user and app scope are included.

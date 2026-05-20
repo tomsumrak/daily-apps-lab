@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
+import { countAppRecords } from "@/lib/app-records";
 import { getDailyApp } from "@/lib/apps";
 import { requireCurrentUser } from "@/lib/auth";
 
@@ -31,6 +32,11 @@ export default async function AppDetailPage({ params }: AppDetailPageProps) {
     notFound();
   }
 
+  const recordCount = await countAppRecords({
+    userId: user.id,
+    appSlug: app.slug
+  });
+
   return (
     <AppShell user={user}>
       <section className="rounded-lg border border-line bg-white p-6 shadow-sm sm:p-8">
@@ -48,6 +54,9 @@ export default async function AppDetailPage({ params }: AppDetailPageProps) {
           <p className="mt-2 text-sm leading-6 text-muted">
             The shared routing, authentication, and database foundation is ready
             for this mini-app to start storing account-scoped records.
+          </p>
+          <p className="mt-4 text-sm font-semibold text-[#096b68]">
+            Saved records for this app: {recordCount}
           </p>
         </div>
       </section>
