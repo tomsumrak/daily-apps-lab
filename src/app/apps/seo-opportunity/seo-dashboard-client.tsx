@@ -883,14 +883,14 @@ function Competitors({
         right={
           <HeaderMeta
             items={[
-              ["Discovered", list.length],
+              ["Manual", list.length],
               ["Combined ETV", fmtMoney(list.reduce((sum, row) => sum + row.etv, 0))]
             ]}
           />
         }
       />
       {list.length === 0 ? (
-        <EmptyState title="No competitors yet" body="Run a refresh to discover and merge competitor domains." />
+        <EmptyState title="No competitors yet" body="Add manual competitor domains in setup, then run a refresh." />
       ) : (
         <>
           <div className="seo-grid-2">
@@ -1754,7 +1754,7 @@ function SetupModal({
           {tab === "limits" && (
             <SetupSection title="API limits & cost controls" desc="Set pull sizes. Higher numbers cost more credits.">
               <FieldGrid>
-                <Field label="Max competitor domains">
+                <Field label="Max manual competitor domains">
                   <Stepper value={settings.maxCompetitors} onChange={(value) => update("maxCompetitors", value)} min={1} max={50} />
                 </Field>
                 <Field label="Keyword limit per competitor">
@@ -1796,7 +1796,7 @@ function SetupModal({
           )}
           {tab === "seeds" && (
             <>
-              <SetupSection title="Manual competitor domains" desc="Always pulled, regardless of discovery overlap.">
+              <SetupSection title="Manual competitor domains" desc="Only active domains in this list are pulled during refresh.">
                 <ListEditor
                   rows={settings.manualCompetitors}
                   columns={[
@@ -2032,7 +2032,25 @@ function ListEditor<T extends { active: boolean; notes: string }>({
 }
 
 function CostEstimate({ settings }: { settings: SeoSettings }) {
-  const competitors = settings.maxCompetitors;
+  const targetDomain = settings.targetDomain
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "")
+    .replace(/\/.*$/, "");
+  const competitors = Math.min(
+    settings.maxCompetitors,
+    settings.manualCompetitors.filter((competitor) => {
+      const domain = competitor.domain
+        .trim()
+        .toLowerCase()
+        .replace(/^https?:\/\//, "")
+        .replace(/^www\./, "")
+        .replace(/\/.*$/, "");
+
+      return competitor.active && domain && domain !== targetDomain;
+    }).length
+  );
   const pageCalls = competitors * settings.pagesToEnrich;
   const keywordCalls = competitors;
   const seedCalls = settings.seedKeywords.filter((seed) => seed.active && seed.keyword).length * 2;

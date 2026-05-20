@@ -30,7 +30,7 @@ import type {
 } from "@/lib/seo/types";
 
 const STEP_MESSAGES: Record<SeoRefreshStep, string> = {
-  competitors: "Discovering and merging competitor domains.",
+  competitors: "Loading active manual competitor domains.",
   competitorKeywords: "Pulling ranked keywords for competitors.",
   seedIdeas: "Expanding active seed keywords.",
   competitorPages: "Pulling top competitor pages.",
@@ -97,9 +97,8 @@ export async function runSeoRefreshStep(
     const pulledAt = new Date().toISOString();
 
     if (step === "competitors") {
-      const items = await client.competitorsDomain(settings);
       const competitors = normalizeCompetitors(
-        items,
+        [],
         settings.manualCompetitors,
         pulledAt,
         settings.targetDomain

@@ -57,6 +57,21 @@ function matchesDomain(value: string, targetDomain: string) {
   return Boolean(targetDomain) && stripDomainUrl(value) === targetDomain;
 }
 
+function activeManualCompetitorDomains(settings: SeoSettings) {
+  const targetDomain = stripDomainUrl(settings.targetDomain);
+
+  return new Set(
+    settings.manualCompetitors
+      .filter((row) => row.active && row.domain)
+      .map((row) => stripDomainUrl(row.domain))
+      .filter((domain) => domain && domain !== targetDomain)
+  );
+}
+
+function isAllowedCompetitor(domain: string, allowedDomains: Set<string>) {
+  return allowedDomains.has(stripDomainUrl(domain));
+}
+
 function asRefreshStatus(value: unknown): SeoRefreshStatus {
   if (!isRecord(value)) {
     return emptyRefreshStatus;
@@ -208,17 +223,30 @@ export async function getSeoDashboardData(
   ]);
 
   const targetDomain = stripDomainUrl(settings.targetDomain);
+  const allowedCompetitors = activeManualCompetitorDomains(settings);
   const competitorRows = asArray<SeoCompetitor>(competitors).filter(
-    (row) => !matchesDomain(row.domain, targetDomain)
+    (row) =>
+      !matchesDomain(row.domain, targetDomain) &&
+      isAllowedCompetitor(row.domain, allowedCompetitors)
   );
   const competitorKeywordRows = asArray<SeoKeywordRow>(
     competitorKeywords
-  ).filter((row) => !matchesDomain(row.competitor, targetDomain));
+  ).filter(
+    (row) =>
+      !matchesDomain(row.competitor, targetDomain) &&
+      isAllowedCompetitor(row.competitor, allowedCompetitors)
+  );
   const competitorPageRows = asArray<SeoCompetitorPage>(
     competitorPages
-  ).filter((row) => !matchesDomain(row.competitorDomain, targetDomain));
+  ).filter(
+    (row) =>
+      !matchesDomain(row.competitorDomain, targetDomain) &&
+      isAllowedCompetitor(row.competitorDomain, allowedCompetitors)
+  );
   const pageKeywordRows = asArray<SeoPageKeyword>(pageKeywords).filter(
-    (row) => !matchesDomain(row.competitor, targetDomain)
+    (row) =>
+      !matchesDomain(row.competitor, targetDomain) &&
+      isAllowedCompetitor(row.competitor, allowedCompetitors)
   );
 
   return {
